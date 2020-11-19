@@ -76,7 +76,7 @@ for line in in_data:
             stream_text += "\n" + stream_server_template.format(port=individual_port, host=host, upstream_port=upstream_port)
         with open(os.path.join(args.out or '.', 'streams', port[0]), "w") as out_file:
             out_file.write(stream_text)
-    elif parts[0] == "proxy" or parts[2] != "to":
+    elif parts[0] == "proxy" and parts[2] == "to":
         domains = [domain if "." in domain else f"{domain}.{args.domain}" for domain in parts[3].split(",")]
         part1, _, part2 = parts[1].partition(":")
         port = part2 or part1
