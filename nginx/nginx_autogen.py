@@ -30,6 +30,18 @@ site_template = """server {{
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 }}
 """
+stream_upstream_template = """
+upstream stream_{port} {{
+    server {host}:{upstream_port};
+}}
+"""
+stream_server_template = """
+server {{
+    listen 0.0.0.0:{port};
+    proxy_pass stream_{port};
+}}
+"""
+
 
 try:
   with open(args.in_file, "r") as in_file:
@@ -41,20 +53,29 @@ except (IndexError, FileNotFoundError):
 pathlib.Path(os.path.join(args.out or ".", "sites")).mkdir(parents=True, exist_ok=True)
 pathlib.Path(os.path.join(args.out or ".", "streams")).mkdir(parents=True, exist_ok=True)
 
+print("Proxying and streaming sites, please remember that this will not delete any files, only overwrite existing ones. Any files you no longer need must be deleted manually")
+
 for line in in_data:
     parts = [item.strip() for item in line.split(" ")]
     if parts[0] == "stream":
-        host, _, port = parts[1].partition(":")
+        host, _, upstream_port = parts[1].partition(":")
         if not host:
             print(f"Warning: you must supply a host to stream from ({line})")
             continue
         if parts[2] == "to":
             try:
-                to_port = parts[3]
+                port = parts[3]
             except IndexError:
                 print(f"Warning: you must supply a port to stream to after specifying 'to' ({line})")
                 continue
-        
+        else:
+            port = (upstream_port)
+        print(f"Streaming {host}:{upstream_port}. Please remember to run 'ufw allow {{port}}' for each specified port (or another command to unrestrict the port if your firewall is not ufw)")
+        stream_text = stream_upstream_template.format(port=port[0], host=host, upstream_port=upstream_port)
+        for individual_port in port.split(","):
+            stream_text += "\n" + stream_server_template.format(port=individual_port, host=host, upstream_port=upstream_port)
+        with open(os.path.join(args.out or '.', 'streams', port[0]), "w") as out_file:
+            out_file.write(stream_text)
     elif parts[0] == "proxy" or parts[2] != "to":
         domains = [domain if "." in domain else f"{domain}.{args.domain}" for domain in parts[3].split(",")]
         part1, _, part2 = parts[1].partition(":")
@@ -71,3 +92,5 @@ for line in in_data:
         )
         with open(os.path.join(args.out or '.', 'sites', domains[0]), "w") as out_file:
             out_file.write(site_text)
+           
+print("Reconfiguration complete, please remember to restart NGINX")
