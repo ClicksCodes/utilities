@@ -43,11 +43,19 @@ pathlib.Path(os.path.join(args.out or ".", "streams")).mkdir(parents=True, exist
 
 for line in in_data:
     parts = [item.strip() for item in line.split(" ")]
-    if len(parts) < 4 or parts[2] != "to":
-        print(f"Warning: Unrecognised line {line}")
-    elif parts[0] == "stream":
-        continue
-    elif parts[0] == "proxy":
+    if parts[0] == "stream":
+        host, _, port = parts[1].partition(":")
+        if not host:
+            print(f"Warning: you must supply a host to stream from ({line})")
+            continue
+        if parts[2] == "to":
+            try:
+                to_port = parts[3]
+            except IndexError:
+                print(f"Warning: you must supply a port to stream to after specifying 'to' ({line})")
+                continue
+        
+    elif parts[0] == "proxy" or parts[2] != "to":
         domains = [domain if "." in domain else f"{domain}.{args.domain}" for domain in parts[3].split(",")]
         part1, _, part2 = parts[1].partition(":")
         port = part2 or part1
@@ -63,5 +71,3 @@ for line in in_data:
         )
         with open(os.path.join(args.out or '.', 'sites', domains[0]), "w") as out_file:
             out_file.write(site_text)
-    else:
-        print(f"Warning: Unrecognised line {line}")
