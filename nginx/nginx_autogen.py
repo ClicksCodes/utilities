@@ -62,7 +62,7 @@ for line in in_data:
         if not host:
             print(f"Warning: you must supply a host to stream from ({line})")
             continue
-        if parts[2] == "to":
+        if len(parts) > 2 and parts[2] == "to":
             try:
                 port = parts[3]
             except IndexError:
