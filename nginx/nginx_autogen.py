@@ -95,7 +95,7 @@ for line in in_data:
         port = part2 or part1
         host = part1 if part2 else "127.0.0.1"
         print(f"Proxying {host}:{port}")
-        http = len(parts) >= 3 and parts[4].lower() == "http"
+        http = len(parts) >= 5 and parts[4].lower() == "http"
         if http:
             site_text = site_template_http.format(
                 domains=' '.join(domains),
