@@ -30,6 +30,19 @@ site_template = """server {{
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 }}
 """
+site_template_http = """server {{
+    server_name {domains} {www_domains};
+    access_log /var/log/nginx/{primary}-http-access.log;
+    error_log /var/log/nginx/{primary}-http-error.log;
+
+    location / {{
+        proxy_pass http://{host}:{port};
+    }}
+
+    listen [::]:80;
+    listen 80;
+}}
+"""
 stream_upstream_template = """
 upstream stream_{port} {{
     server {host}:{upstream_port};
@@ -82,15 +95,26 @@ for line in in_data:
         port = part2 or part1
         host = part1 if part2 else "127.0.0.1"
         print(f"Proxying {host}:{port}")
-        site_text = site_template.format(
-            domains=' '.join(domains),
-            primary=domains[0],
-            www_domains=' '.join(f'www.{domain}' for domain in domains),
-            host=host,
-            port=port,
-            ssl_dir=args.ssl_dir.format(tld=args.domain, domain=domains[0])
-        )
-        with open(os.path.join(args.out or '.', 'sites', domains[0]), "w") as out_file:
+        http = len(parts) >= 3 && part[4].lower() == "http"
+        if http:
+            site_text = site_template_http.format(
+                domains=' '.join(domains),
+                primary=domains[0],
+                www_domains=' '.join(f'www.{domain}' for domain in domains),
+                host=host,
+                port=port,
+                ssl_dir=args.ssl_dir.format(tld=args.domain, domain=domains[0])
+            )
+        else:
+            site_text = site_template.format(
+                domains=' '.join(domains),
+                primary=domains[0],
+                www_domains=' '.join(f'www.{domain}' for domain in domains),
+                host=host,
+                port=port,
+                ssl_dir=args.ssl_dir.format(tld=args.domain, domain=domains[0])
+            )
+        with open(os.path.join(args.out or '.', 'sites', domains[0] + (".http" if http else "")), "w") as out_file:
             out_file.write(site_text)
 
 print("Reconfiguration complete, please remember to restart NGINX")
