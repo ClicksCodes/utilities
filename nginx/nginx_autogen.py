@@ -22,6 +22,17 @@ site_template_ssl = """
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 }}
 """
+site_template_ssl_default = """
+    listen [::]:443 ssl default_server;
+    listen 443 ssl default_server;
+
+    ssl_certificate {ssl_dir}/fullchain.pem;
+    ssl_certificate_key {ssl_dir}/privkey.pem;
+
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+}}
+"""
 site_template_nossl = """
     listen [::]:80;
     listen 80;
@@ -120,9 +131,10 @@ for line in in_data:
         print(f"Proxying {host}:{port}")
         http_start = len(parts) >= 5 and parts[4].lower() == "http"
         http = len(parts) >= 6 and parts[5].lower() == "http"
+        default = len(parts) >= 7 and parts[6].lower() == "default" and not http
 
         template = site_template_start_nossl if http_start else site_template_start_ssl
-        template += site_template_nossl if http else site_template_ssl
+        template += site_template_nossl if http else (site_template_ssl_default if default else site_template_ssl)
 
         site_text = template.format(
             domains=' '.join(domains),
