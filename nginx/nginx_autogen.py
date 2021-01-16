@@ -41,6 +41,8 @@ server {{
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header Host            $host;
         proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_headers_hash_max_size 512;
+        proxy_headers_hash_bucket_size 128; 
     }}
 
 """
@@ -58,6 +60,8 @@ server {{
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header Host            $host;
         proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_headers_hash_max_size 512;
+        proxy_headers_hash_bucket_size 128; 
     }}
 
 """
