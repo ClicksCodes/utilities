@@ -129,7 +129,7 @@ for line in in_data:
         port = part2 or part1
         host = part1 if part2 else "127.0.0.1"
         print(f"Proxying {host}:{port}")
-        http_start = len(parts) >= 5 and parts[4].lower() == "http"
+        http_start = not (len(parts) >= 5 and parts[4].lower() == "https")
         http = len(parts) >= 6 and parts[5].lower() == "http"
         default = len(parts) >= 7 and parts[6].lower() == "default" and not http
 
