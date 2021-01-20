@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Download the container types that we want
-pveam download local debian-10-standard_10.*_amd64.tar.gz
+ct=$(pveam avaliable | awk -F "[, ]+" '/debian-10-standard/{print $NF}' | echo $1)
+pveam download local $ct
 
 echo "deb http://download.proxmox.com/debian/pve buster pve-no-subscription" > /etc/apt/sources.list.d/pve-enterprise.list
 apt update
