@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Download the container types that we want
-ct=$(pveam avaliable | awk -F "[, ]+" '/debian-10-standard/{print $NF}' | echo $1)
+ct=$(pveam available | awk -F "[, ]+" '/debian-10-standard/{print $NF}')
 pveam download local $ct
 
 echo "deb http://download.proxmox.com/debian/pve buster pve-no-subscription" > /etc/apt/sources.list.d/pve-enterprise.list
