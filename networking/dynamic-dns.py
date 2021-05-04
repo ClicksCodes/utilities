@@ -56,7 +56,6 @@ def do_dns_update(cf, zone_name, zone_id, dns_name, ip_address, ip_address_type)
             continue
 
         if ip_address == old_ip_address:
-            print('4 UNCHANGED: %s %s' % (dns_name, ip_address))
             updated = True
             continue
 
@@ -101,8 +100,6 @@ def main():
     host_name, zone_name = '.'.join(dns_name.split('.')[:2]), '.'.join(dns_name.split('.')[-2:])
 
     ip_address, ip_address_type = my_ip_address()
-
-    print('9 MY IP: %s %s' % (dns_name, ip_address))
 
     cf = CloudFlare.CloudFlare(token=os.environ["CLOUDFLARE_API_TOKEN"])
 
