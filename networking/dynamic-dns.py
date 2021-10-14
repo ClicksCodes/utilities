@@ -1,25 +1,29 @@
 import os
 import sys
 import requests
-
+import CloudFlare
 
 sys.path.insert(0, os.path.abspath('..'))
-import CloudFlare
+
 
 def my_ip_address():
     """Cloudflare API code - example"""
 
-    # This list is adjustable - plus some v6 enabled services are needed
-    # url = 'http://myip.dnsomatic.com'
-    # url = 'http://www.trackip.net/ip'
-    # url = 'http://myexternalip.com/raw'
-    url = 'https://api.ipify.org'
-    try:
-        ip_address = requests.get(url).text
-    except:
-        exit('2 %s: failed' % (url))
-    if ip_address == '':
-        exit('1 %s: failed' % (url))
+    ip_address = None
+    for url in [
+        "https://api.ipify.org",
+        "http://myip.dnsomatic.com",
+        "http://www.trackip.net/ip",
+        "http://myexternalip.com/raw"
+    ]:
+        try:
+            ip_address = requests.get(url).text
+        except requests.exceptions:
+            exit(f'Error: {url} - failed')
+        if ip_address:
+            break
+    if not ip_address:
+        exit('Error: Failed to get ip address')
 
     if ':' in ip_address:
         ip_address_type = 'AAAA'
@@ -27,16 +31,16 @@ def my_ip_address():
         ip_address_type = 'A'
 
     return ip_address, ip_address_type
-    # return "74.103.170.104", ip_address_type
+
 
 def do_dns_update(cf, zone_name, zone_id, dns_name, ip_address, ip_address_type):
     """Cloudflare API code - example"""
 
     try:
-        params = {'name':dns_name, 'match':'all', 'type':ip_address_type}
+        params = {'name': dns_name, 'match': 'all', 'type': ip_address_type}
         dns_records = cf.zones.dns_records.get(zone_id, params=params)
     except CloudFlare.exceptions.CloudFlareAPIError as e:
-        exit('0 /zones/dns_records %s - %d %s - api call failed' % (dns_name, e, e))
+        exit(f'Error: /zones/dns_records {dns_name} - {e} - api call failed')
 
     updated = False
 
@@ -52,7 +56,7 @@ def do_dns_update(cf, zone_name, zone_id, dns_name, ip_address, ip_address_type)
         if ip_address_type != old_ip_address_type:
             # only update the correct address type (A or AAAA)
             # we don't see this becuase of the search params above
-            print('3 IGNORED: %s %s ; wrong address family' % (dns_name, old_ip_address))
+            print(f'Ignored: {dns_name} {old_ip_address} ; wrong address family')
             continue
 
         if ip_address == old_ip_address:
@@ -60,21 +64,21 @@ def do_dns_update(cf, zone_name, zone_id, dns_name, ip_address, ip_address_type)
             continue
 
         proxied_state = dns_record['proxied']
- 
+
         # Yes, we need to update this record - we know it's the same address type
 
         dns_record_id = dns_record['id']
         dns_record = {
-            'name':dns_name,
-            'type':ip_address_type,
-            'content':ip_address,
-            'proxied':proxied_state
+            'name': dns_name,
+            'type': ip_address_type,
+            'content': ip_address,
+            'proxied': proxied_state
         }
         try:
             dns_record = cf.zones.dns_records.put(zone_id, dns_record_id, data=dns_record)
         except CloudFlare.exceptions.CloudFlareAPIError as e:
-            exit('5 /zones.dns_records.put %s - %d %s - api call failed' % (dns_name, e, e))
-        print('6 UPDATED: %s %s -> %s' % (dns_name, old_ip_address, ip_address))
+            exit(f'Error: /zones.dns_records.put {dns_nane} - {e} - api call failed')
+        print(f'Updated: {dns_name} {old_ip_address} -> {ip_address}')
         updated = True
 
     if updated:
@@ -82,15 +86,16 @@ def do_dns_update(cf, zone_name, zone_id, dns_name, ip_address, ip_address_type)
 
     # no exsiting dns record to update - so create dns record
     dns_record = {
-        'name':dns_name,
-        'type':ip_address_type,
-        'content':ip_address
+        'name': dns_name,
+        'type': ip_address_type,
+        'content': ip_address
     }
     try:
         dns_record = cf.zones.dns_records.post(zone_id, data=dns_record)
     except CloudFlare.exceptions.CloudFlareAPIError as e:
-        exit('/zones.dns_records.post %s - %d %s - api call failed' % (dns_name, e, e))
-    print('7 CREATED: %s %s' % (dns_name, ip_address))
+        exit(f'Error: /zones.dns_records.post {dns_name} - {e} - api call failed')
+    print(f'Created: {dns_name} {ip_address}')
+
 
 def main():
     """Cloudflare API code - example"""
@@ -105,18 +110,18 @@ def main():
 
     # grab the zone identifier
     try:
-        params = {'name':zone_name}
+        params = {'name': zone_name}
         zones = cf.zones.get(params=params)
     except CloudFlare.exceptions.CloudFlareAPIError as e:
-        exit('10 /zones %d %s - api call failed' % (e, e))
+        exit(f'Error: /zones {e} - api call failed')
     except Exception as e:
-        exit('11 /zones.get - %s - api call failed' % (e))
+        exit(f'Error: /zones.get - {e} - api call failed')
 
     if len(zones) == 0:
-        exit('12 /zones.get - %s - zone not found' % (zone_name))
+        exit(f'Error: /zones.get - {zone_name} - zone not found')
 
     if len(zones) != 1:
-        exit('13 /zones.get - %s - api call returned %d items' % (zone_name, len(zones)))
+        exit(f'Error: /zones.get - {dns_name} - api call returned {len(zones)} items')
 
     zone = zones[0]
 
@@ -125,6 +130,7 @@ def main():
 
     do_dns_update(cf, zone_name, zone_id, dns_name, ip_address, ip_address_type)
     exit(0)
+
 
 if __name__ == '__main__':
     main()
