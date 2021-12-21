@@ -86,7 +86,6 @@ stream_server_template = """
 server {{
     listen 0.0.0.0:{port};
     listen 0.0.0.0:{port} udp;
-    proxy_protocol on;
     proxy_pass stream_{port};
 }}
 """
